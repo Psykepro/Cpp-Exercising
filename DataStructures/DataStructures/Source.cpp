@@ -1,11 +1,14 @@
 #include <iostream>
 #include "AVLTree.h"
 
+template<typename T>
+using MyAVLTree = myDataStructures::AVLTree::AVLTree<T>;
+
 int main()
 {
 
-	//### Test AVL Tree - BEGIN ###\\
-	//AVLTree<int> t;
+	//### Test AVL Tree - BEGIN ###
+	//MyAVLTree<int> t;
 	//t.Insert(20);
 	//t.Insert(25);
 	//t.Insert(15);
@@ -25,7 +28,7 @@ int main()
 	//t.Remove(35);
 	//t.Remove(38);
 	//t.Display();
-	//### Test AVL Tree - END ###\\
+	//### Test AVL Tree - END ###
 
 	std::cin.ignore();
 	std::cin.get();
