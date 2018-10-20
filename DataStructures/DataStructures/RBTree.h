@@ -84,28 +84,28 @@ namespace myDataStructures
 			int initialblackheight1 = GetBlackHeight(root1);
 			int initialblackheight2 = GetBlackHeight(root2);
 			if (initialblackheight1 > initialblackheight2) {
-				c = maxValueNode(root1);
+				c = MaxValueNode(root1);
 				temp = c->data;
-				deleteValue(c->data);
+				DeleteValue(c->data);
 				root1 = root;
 			}
 			else if (initialblackheight2 > initialblackheight1) {
-				c = minValueNode(root2);
+				c = MinValueNode(root2);
 				temp = c->data;
-				rbTree2.deleteValue(c->data);
+				rbTree2.DeleteValue(c->data);
 				root2 = rbTree2.root;
 			}
 			else {
-				c = minValueNode(root2);
+				c = MinValueNode(root2);
 				temp = c->data;
-				rbTree2.deleteValue(c->data);
+				rbTree2.DeleteValue(c->data);
 				root2 = rbTree2.root;
 				if (initialblackheight1 != GetBlackHeight(root2)) {
-					rbTree2.insertValue(c->data);
+					rbTree2.InsertValue(c->data);
 					root2 = rbTree2.root;
-					c = maxValueNode(root1);
+					c = MaxValueNode(root1);
 					temp = c->data;
-					deleteValue(c->data);
+					DeleteValue(c->data);
 					root1 = root;
 				}
 			}
@@ -140,10 +140,10 @@ namespace myDataStructures
 					ptr->parent = c;
 				ptr_parent->left = c;
 				c->parent = ptr_parent;
-				if (getColor(ptr_parent) == RED) {
+				if (GetColor(ptr_parent) == RED) {
 					FixInsertRBTree(c);
 				}
-				else if (getColor(ptr) == RED) {
+				else if (GetColor(ptr) == RED) {
 					FixInsertRBTree(ptr);
 				}
 				c->data = temp;
@@ -161,10 +161,10 @@ namespace myDataStructures
 				ptr->parent = c;
 				ptr_parent->right = c;
 				c->parent = ptr_parent;
-				if (getColor(ptr_parent) == RED) {
+				if (GetColor(ptr_parent) == RED) {
 					FixInsertRBTree(c);
 				}
-				else if (getColor(ptr) == RED) {
+				else if (GetColor(ptr) == RED) {
 					FixInsertRBTree(ptr);
 				}
 				c->data = temp;
