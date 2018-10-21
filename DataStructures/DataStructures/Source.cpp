@@ -8,6 +8,7 @@ using MyAVLTree = myDataStructures::AVLTree::AVLTree<T>;
 template<typename T>
 using MyRBTree = myDataStructures::RBTree::RBTree<T>;
 
+
 int main()
 {
 
@@ -38,17 +39,27 @@ int main()
 	//MyRBTree<int> rb;
 	//rb.InsertValue(7);
 	//rb.InsertValue(3);
+	//rb.InsertValue(18);
 	//rb.InsertValue(10);
+	//rb.InsertValue(22);
 	//rb.InsertValue(8);
 	//rb.InsertValue(11);
-	//rb.InsertValue(18);
-	//rb.InsertValue(45);
-	//rb.InsertValue(5);
+	//rb.InsertValue(26);
 	//rb.InsertValue(2);
-	//rb.DeleteValue(10);
+	//rb.InsertValue(6);
+	//rb.InsertValue(13);
+	//rb.InOrder();
+	//rb.LevelOrder();
+
+	//std::cout << std::endl << "Deleting 18, 11, 3, 10, 22" << std::endl;
+
+	//rb.DeleteValue(18);
 	//rb.DeleteValue(11);
-	//rb.DeleteValue(45);
-	//rb.DeleteValue(7);
+	//rb.DeleteValue(3);
+	//rb.DeleteValue(10);
+	//rb.DeleteValue(22);
+	//rb.InOrder();
+	//rb.LevelOrder();
 	//### Test Red Black Tree - END ###
 
 	std::cin.ignore();

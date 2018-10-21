@@ -1,6 +1,7 @@
 #ifndef RED_BLACK_TREE_H
 #define RED_BLACK_TREE_H
 #include <algorithm>
+#include <queue>
 
 namespace myDataStructures
 {
@@ -9,8 +10,7 @@ namespace myDataStructures
 		enum Color : unsigned char
 		{
 			RED,
-			BLACK,
-			DOUBLE_BLACK
+			BLACK
 		};
 
 		template<typename T>
@@ -25,6 +25,39 @@ namespace myDataStructures
 			{
 			}
 
+			// check if node is left child of parent 
+			bool IsOnLeft() { return this == parent->left; }
+
+			// returns pointer to uncle 
+			Node<T>* Uncle() {
+				// If no parent or grandparent, then no uncle 
+				if (parent == nullptr || parent->parent == nullptr)
+					return nullptr;
+
+				if (parent->IsOnLeft())
+					// uncle on right 
+					return parent->parent->right;
+				else
+					// uncle on left 
+					return parent->parent->left;
+			}
+
+			// returns pointer to sibling 
+			Node<T>* Sibling() {
+				// sibling null if no parent 
+				if (parent == nullptr)
+					return nullptr;
+
+				if (IsOnLeft())
+					return parent->right;
+
+				return parent->left;
+			}
+
+			bool HasRedChild() {
+				return (left != nullptr && left->color == Color::RED) or
+					(right != nullptr && right->color == Color::RED);
+			}
 		};
 
 		template<typename T>
@@ -36,14 +69,18 @@ namespace myDataStructures
 			void LeftRotation(Node<T>* &n);
 			void RightRotation(Node<T>* &n);
 			void SetColor(Node<T>* &n, unsigned char newColor);
+			void SwapValues(Node<T>* &u, Node<T>* &v);
 			void FixInsertRBTree(Node<T>* &n);
-			void FixDeleteRBTree(Node<T>* &n);
 			void InOrderBST(Node<T>* &n);
 			void PreOrderBST(Node<T>* &n);
+			void LevelOrder(Node<T>* &n);
+			void FixDoubleBlack(Node<T>* &x);
 			Node<T>* MinValueNode(Node<T>* &n);
 			Node<T>* MaxValueNode(Node<T>* &n);
-			Node<T>* InsertBST(Node<T>* &root, Node<T>* &n);
-			Node<T>* DeleteBST(Node<T>* &n, T data);
+			Node<T>* InsertNode(Node<T>* &root, Node<T>* &n);
+			Node<T>* Successor(Node<T>* n);
+			Node<T>* BSTreplace(Node<T>* n);
+			void DeleteNode(Node<T>* &v);
 			unsigned char GetColor(Node<T>* &n) const;
 			int GetBlackHeight(Node<T>* node);
 
@@ -52,10 +89,10 @@ namespace myDataStructures
 			RBTree();
 			void InsertValue(T data);
 			void DeleteValue(T data);
-			void Merge(RBTree rbTree2);
 			void InOrder();
 			void PreOrder();
-
+			void LevelOrder();
+			Node<T>* Search(T data);
 		};
 
 		// Public Member Functions Implementations
@@ -63,126 +100,92 @@ namespace myDataStructures
 		void RBTree<T>::InsertValue(T data)
 		{
 			Node<T>* newNode = new Node<T>(data);
-			root = InsertBST(root, newNode);
+			root = InsertNode(root, newNode);
 			FixInsertRBTree(newNode);
 		}
 
 		template<typename T>
 		void RBTree<T>::DeleteValue(T data)
 		{
-			Node<T> *node = DeleteBST(root, data);
-			FixDeleteRBTree(node);
-		}
+			if (root == nullptr)
+				// Tree is empty 
+				return;
 
-		template<typename T>
-		void RBTree<T>::Merge(RBTree rbTree2)
-		{
-			int temp;
-			Node<T>* c, *temp_ptr;
-			Node<T>* root1 = root;
-			Node<T>* root2 = rbTree2.root;
-			int initialblackheight1 = GetBlackHeight(root1);
-			int initialblackheight2 = GetBlackHeight(root2);
-			if (initialblackheight1 > initialblackheight2) {
-				c = MaxValueNode(root1);
-				temp = c->data;
-				DeleteValue(c->data);
-				root1 = root;
+			Node<T>* v = Search(data);
+
+			if (v->data != data) {
+				std::cout << "No node found to delete with value:" << data << std::endl;
+				return;
 			}
-			else if (initialblackheight2 > initialblackheight1) {
-				c = MinValueNode(root2);
-				temp = c->data;
-				rbTree2.DeleteValue(c->data);
-				root2 = rbTree2.root;
-			}
-			else {
-				c = MinValueNode(root2);
-				temp = c->data;
-				rbTree2.DeleteValue(c->data);
-				root2 = rbTree2.root;
-				if (initialblackheight1 != GetBlackHeight(root2)) {
-					rbTree2.InsertValue(c->data);
-					root2 = rbTree2.root;
-					c = MaxValueNode(root1);
-					temp = c->data;
-					DeleteValue(c->data);
-					root1 = root;
-				}
-			}
-			setColor(c, RED);
-			int finalblackheight1 = GetBlackHeight(root1);
-			int finalblackheight2 = GetBlackHeight(root2);
-			if (finalblackheight1 == finalblackheight2) {
-				c->left = root1;
-				root1->parent = c;
-				c->right = root2;
-				root2->parent = c;
-				setColor(c, BLACK);
-				c->data = temp;
-				root = c;
-			}
-			else if (finalblackheight2 > finalblackheight1) {
-				Node<T>* ptr = root2;
-				while (finalblackheight1 != GetBlackHeight(ptr)) {
-					temp_ptr = ptr;
-					ptr = ptr->left;
-				}
-				Node<T>* ptr_parent;
-				if (ptr == nullptr)
-					ptr_parent = temp_ptr;
-				else
-					ptr_parent = ptr->parent;
-				c->left = root1;
-				if (root1 != nullptr)
-					root1->parent = c;
-				c->right = ptr;
-				if (ptr != nullptr)
-					ptr->parent = c;
-				ptr_parent->left = c;
-				c->parent = ptr_parent;
-				if (GetColor(ptr_parent) == RED) {
-					FixInsertRBTree(c);
-				}
-				else if (GetColor(ptr) == RED) {
-					FixInsertRBTree(ptr);
-				}
-				c->data = temp;
-				root = root2;
-			}
-			else {
-				Node<T>* ptr = root1;
-				while (finalblackheight2 != GetBlackHeight(ptr)) {
-					ptr = ptr->right;
-				}
-				Node<T>* ptr_parent = ptr->parent;
-				c->right = root2;
-				root2->parent = c;
-				c->left = ptr;
-				ptr->parent = c;
-				ptr_parent->right = c;
-				c->parent = ptr_parent;
-				if (GetColor(ptr_parent) == RED) {
-					FixInsertRBTree(c);
-				}
-				else if (GetColor(ptr) == RED) {
-					FixInsertRBTree(ptr);
-				}
-				c->data = temp;
-				root = root1;
-			}
-			return;
+
+			DeleteNode(v);
 		}
 
 		template<typename T>
 		void RBTree<T>::InOrder()
 		{
+			if (root == nullptr)
+			{
+				std::cout << "Tree is empty." << std::endl;
+				return;
+			}
+
+			std::cout << "In Order:" << std::endl;
 			InOrderBST(root);
+			std::cout << '\n';
 		}
 
 		template<typename T>
 		inline void RBTree<T>::PreOrder()
 		{
+			if (root == nullptr)
+			{
+				std::cout << "Tree is empty." << std::endl;
+				return;
+			}
+
+			std::cout << "Pre Order:" << std::endl;
 			PreOrderBST(root);
+			std::cout << '\n';
+		}
+
+		template<typename T>
+		void RBTree<T>::LevelOrder()
+		{
+			if (root == nullptr)
+			{
+				std::cout << "Tree is empty." << std::endl;
+				return;
+			}
+				
+			std::cout << "Level Order:" << std::endl;
+			LevelOrder(root);
+			std::cout << '\n';
+		}
+
+		template<typename T>
+		Node<T>* RBTree<T>::Search(T data)
+		{
+			Node<T> *temp = root;
+			while (temp != nullptr) {
+				if (data < temp->data) {
+					if (temp->left == nullptr)
+						break;
+					else
+						temp = temp->left;
+				}
+				else if (data == temp->data) {
+					break;
+				}
+				else {
+					if (temp->right == nullptr)
+						break;
+					else
+						temp = temp->right;
+				}
+			}
+
+			return temp;
 		}
 
 		// Default Constructor 
@@ -247,7 +250,13 @@ namespace myDataStructures
 			n->color = newColor;
 		}
 
-		
+		template<typename T>
+		void RBTree<T>::SwapValues(Node<T>* &u, Node<T>* &v)
+		{
+			T temp = u->data;
+			u->data = v->data;
+			v->data = temp;
+		}
 
 		template<typename T>
 		Node<T>* RBTree<T>::MinValueNode(Node<T>* &n)
@@ -272,19 +281,19 @@ namespace myDataStructures
 		}
 
 		template<typename T>
-		inline Node<T>* RBTree<T>::InsertBST(Node<T>*& root, Node<T>*& n)
+		Node<T>* RBTree<T>::InsertNode(Node<T>*& root, Node<T>*& n)
 		{
 			if (root == nullptr)
 				return n;
 
 			if (n->data > root->data)
 			{
-				root->right = InsertBST(root->right, n);
+				root->right = InsertNode(root->right, n);
 				root->right->parent = root;
 			}
 			else if (n->data < root->data)
 			{
-				root->left = InsertBST(root->left, n);
+				root->left = InsertNode(root->left, n);
 				root->left->parent = root;
 			}
 
@@ -292,23 +301,221 @@ namespace myDataStructures
 		}
 
 		template<typename T>
-		Node<T>* RBTree<T>::DeleteBST(Node<T>* &n, T data)
+		// find node that do not have a left child 
+		// in the subtree of the given node 
+		Node<T>* RBTree<T>::Successor(Node<T>* n)
 		{
-			if (n == nullptr)
-				return n;
+			Node<T>* temp = n;
 
-			if (n->data < data)
-				return DeleteBST(n->right, data);
-			else if (n->data > data)
-				return DeleteBST(n->left, data);
+			while (temp->left != nullptr)
+				temp = temp->left;
 
-			if (n->left == nullptr || n->right == nullptr)
-				return n;
-
-			Node<T>* temp = MinValueNode(n->right);
-			root->data = temp->data;
-			return DeleteBST(n->right, temp->data);
+			return temp;
 		}
+
+
+		template<typename T>
+		// find node that replaces a deleted node in BST 
+		Node<T>* RBTree<T>::BSTreplace(Node<T>* n)
+		{
+			// when node have 2 children 
+			if (n->left != nullptr && n->right != nullptr)
+				return Successor(n->right);
+
+			// when leaf
+			if (n->left == nullptr && n->right == nullptr)
+				return nullptr;
+
+			// when signle child
+			if (n->left != nullptr)
+				return n->left;
+			else
+				return n->right;
+		}
+
+		template<typename T>
+		// deletes the given node 
+		void RBTree<T>::DeleteNode(Node<T>* &v)
+		{
+			Node<T>* u = BSTreplace(v);
+			// True when u and v are both black
+			bool uvBlack = (GetColor(u) == Color::BLACK) && (GetColor(v) == Color::BLACK);
+			Node<T>* parent = v->parent;
+
+			if (u == nullptr)
+			{
+				// u is nullptr then v is leaf
+				if (v == root)
+				{
+					// v is root, making root null 
+					root = nullptr;
+				}
+				else
+				{
+					if (uvBlack)
+					{
+						// u and v are black and v is leaf, so fix double black at v
+						FixDoubleBlack(v);
+					}
+					else
+					{
+						// u or v is red
+						Node<T>* sibling = v->Sibling();
+						if (sibling != nullptr && GetColor(v) == Color::BLACK)
+						{
+							// sibling is not null and v is black, make sibling red.
+							sibling->color = Color::RED;
+						}
+					}
+
+					// delete v from the tree
+					if (v->IsOnLeft())
+						parent->left = nullptr;
+					else
+						parent->right = nullptr;
+				}
+
+				delete (v);
+				return;
+			}
+
+			if (v->left == nullptr || v->right == nullptr)
+			{
+				// v has one child
+				if (v == root)
+				{
+					// v is root, assign the value of u to v, and delete u
+					v->data = u->data;
+					v->left = v->right = nullptr;
+					delete (u);
+				}
+				else
+				{
+					// Detach v from tree and move u up
+					if (v->IsOnLeft())
+					{
+						parent->left = u;
+					}
+					else
+					{
+						parent->right = u;
+					}
+
+					delete (v);
+					u->parent = parent;
+
+					if (uvBlack)
+					{
+						// u and v both black, fix double black at u
+						FixDoubleBlack(u);
+					}
+					else
+					{
+						// u or v is red, color u black
+						u->color = Color::BLACK;
+					}
+				}
+				return;
+			}
+
+			// v has 2 children , swap values with successor and recurse
+			SwapValues(u, v);
+			DeleteNode(u);
+		}
+
+		template<typename T>
+		void RBTree<T>::FixDoubleBlack(Node<T>* &x)
+		{
+			if (x == root)
+			{
+				// Reached root, so return
+				return;
+			}
+
+			Node<T>* sibling = x->Sibling();
+			Node<T>* parent = x->parent;
+
+			if (sibling == nullptr)
+			{
+				// No sibling, double black pushed up
+				FixDoubleBlack(parent);
+			}
+			else
+			{
+				if (GetColor(sibling) == Color::RED)
+				{
+					// Sibling Red
+					parent->color = Color::RED;
+					sibling->color = Color::BLACK;
+					if (sibling->IsOnLeft())
+					{
+						// Left Case
+						RightRotation(parent);
+					}
+					else
+					{
+						// Right Case
+						LeftRotation(parent);
+					}
+					FixDoubleBlack(x);
+				}
+				else
+				{
+					// Sibling Black
+					if (sibling->HasRedChild())
+					{
+						// Sibling has At least 1 red child
+						if (GetColor(sibling->left) == Color::RED)
+						{
+							if (sibling->IsOnLeft())
+							{
+								// Left Left
+								sibling->left->color = sibling->color;
+								sibling->color = parent->color;
+								RightRotation(parent);
+							}
+							else
+							{
+								// Right Left
+								sibling->left->color = parent->color;
+								RightRotation(sibling);
+								LeftRotation(parent);
+							}
+						}
+						else
+						{
+							if (sibling->IsOnLeft())
+							{
+								// Left Right
+								sibling->right->color = parent->color;
+								LeftRotation(sibling);
+								RightRotation(parent);
+							}
+							else
+							{
+								// Right Right
+								sibling->right->color = sibling->color;
+								sibling->color = parent->color;
+								LeftRotation(parent);
+							}
+						}
+
+						parent->color = Color::BLACK;
+					}
+					else
+					{
+						// Sibling has 2 black children
+						sibling->color = Color::RED;
+						if (GetColor(parent) == Color::BLACK)
+							// Double Black pushed up
+							FixDoubleBlack(parent);
+						else
+							parent->color = Color::BLACK;
+					}
+				}
+			}
+		}
+
 
 		template<typename T>
 		inline unsigned char RBTree<T>::GetColor(Node<T>*& n) const
@@ -411,170 +618,13 @@ namespace myDataStructures
 		}
 
 		template<typename T>
-		void RBTree<T>::FixDeleteRBTree(Node<T>* &n)
-		{
-			if (n == nullptr)
-				return;
-
-			Node<T>* child = n->left != nullptr ? n->left : n->right;
-
-			// Case if we delete root
-			if (n == root)
-			{
-				delete (n);
-				if (child == nullptr)
-				{
-					root = nullptr;
-				}
-				else
-				{
-					child->parent = nullptr;
-					root = child;
-				}
-
-				SetColor(root, Color::BLACK);
-				return;
-			}
-
-			// Case when the node to delete is RED or one of the children is RED
-			if (GetColor(n) == Color::RED || GetColor(n->left) == Color::RED || GetColor(n->right) == Color::RED)
-			{
-				if (n == n->parent->left)
-				{
-					n->parent->left = child;
-					if (child != nullptr)
-						child->parent = n->parent;
-					SetColor(child, Color::BLACK);
-					delete (n);
-				}
-				else
-				{
-					n->parent->right = child;
-					if (child != nullptr)
-						child->parent = n->parent;
-					SetColor(child, Color::BLACK);
-					delete (n);
-				}
-			}
-			// Cases when the node to delete is BLACK and his children are BLACK
-			else
-			{
-				Node<T>* sibling = nullptr;
-				Node<T>* parent = nullptr;
-				Node<T>* ptr = n;
-				SetColor(ptr, Color::DOUBLE_BLACK);
-				while (ptr != root && GetColor(ptr) == Color::DOUBLE_BLACK)
-				{
-					parent = ptr->parent;
-					// ptr is left child
-					if (ptr == parent->left)
-					{
-						sibling = parent->right;
-						// Case when sibling is RED
-						if (GetColor(sibling) == Color::RED)
-						{
-							SetColor(sibling, Color::BLACK);
-							SetColor(parent, Color::RED);
-							LeftRotation(parent);
-						}
-						// Cases when sibling is BLACK
-						else
-						{
-							// Subcase when children of sibling are BLACK
-							if (GetColor(sibling->left) == Color::BLACK
-								&& GetColor(sibling->right) == Color::BLACK)
-							{
-								SetColor(sibling, Color::RED);
-								if (GetColor(parent) == Color::RED)
-									SetColor(parent, Color::BLACK);
-								else
-									SetColor(parent, Color::DOUBLE_BLACK);
-								ptr = parent;
-							}
-							// Subcase when at least one of the children of sibling is RED
-							else
-							{
-								if (GetColor(sibling->right) == Color::BLACK)
-								{
-									SetColor(sibling->left, Color::BLACK);
-									SetColor(sibling, Color::RED);
-									RightRotation(sibling);
-									sibling = parent->right;
-								}
-								SetColor(sibling, parent->color);
-								SetColor(parent, Color::BLACK);
-								SetColor(sibling->right, Color::BLACK);
-								LeftRotation(parent);
-								break;
-
-							}
-						}
-					}
-					// ptr is right child
-					else
-					{
-						sibling = parent->left;
-						// Case when sibling is RED
-						if (GetColor(sibling) == Color::RED)
-						{
-							SetColor(sibling, Color::BLACK);
-							SetColor(parent, Color::RED);
-							RightRotation(parent);
-						}
-						// Cases when sibling is BLACK
-						else
-						{
-							// Subcase when children of sibling are BLACK
-							if (GetColor(sibling->left) == Color::BLACK
-								&& GetColor(sibling->right) == Color::BLACK)
-							{
-								SetColor(sibling, Color::RED);
-								if (GetColor(parent) == Color::RED)
-									SetColor(parent, Color::BLACK);
-								else
-									SetColor(parent, Color::DOUBLE_BLACK);
-								ptr = parent;
-							}
-							// Subcase when at least one of the children of sibling is RED
-							else
-							{
-								if (GetColor(sibling->left) == Color::BLACK)
-								{
-									SetColor(sibling->right, Color::BLACK);
-									SetColor(sibling, Color::RED);
-									LeftRotation(sibling);
-									sibling = parent->left;
-								}
-								SetColor(sibling, parent->color);
-								SetColor(parent, Color::BLACK);
-								SetColor(sibling->left, Color::BLACK);
-								RightRotation(parent);
-								break;
-								
-							}
-						}	
-					}
-				}
-
-				if (n == n->parent->left)
-					n->parent->left = nullptr;
-				else
-					n->parent->right = nullptr;
-				delete (n);
-
-				SetColor(root, Color::BLACK);
-
-			}
-		}
-
-		template<typename T>
 		void RBTree<T>::InOrderBST(Node<T>*& n)
 		{
 			if (n == nullptr)
 				return;
 
 			InOrderBST(n->left);
-			std::cout << n->data << " " << n->color << " | " << std::endl;
+			std::cout << n->data << " ";
 			InOrderBST(n->right);
 		}
 
@@ -585,9 +635,42 @@ namespace myDataStructures
 				return;
 
 			std::cout << n->data << " " << n->color << " | " << std::endl;
-			PreOrderBst(n->left);
-			PreOrderBst(n->right);
+			PreOrderBST(n->left);
+			PreOrderBST(n->right);
 		}
+
+		template<typename T>
+		// prints level order for given node 
+		void RBTree<T>::LevelOrder(Node<T>* &n) {
+			if (n == nullptr)
+				// return if node is null 
+				return;
+
+			// queue for level order 
+			std::queue<Node<T>*> q;
+			Node<T>* curr;
+
+			// push n 
+			q.push(n);
+
+			while (!q.empty()) {
+				// while q is not empty 
+				// dequeue 
+				curr = q.front();
+				q.pop();
+
+				// print node value 
+				std::cout << curr->data << " ";
+
+				// push children to queue 
+				if (curr->left != nullptr)
+					q.push(curr->left);
+				if (curr->right != nullptr)
+					q.push(curr->right);
+			}
+		}
+
+	
 
 		
 
